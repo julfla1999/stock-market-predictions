@@ -1,33 +1,42 @@
 Zarys projektu:
 
-Chcemy, żeby to było automatyczne narzędzie, gdzie użytkownik podaje nazwę instytucji a dostaje wykres prognozy na rok.
-Chcemy, żeby to był jakiś model, dlatego ARIMA może być dobrym docelowym modelem.
+Jest to automatyczne narzędzie, gdzie użytkownik podaje nazwę instytucji a dostaje wykres prognozy na 14 dni.
+Głównym modelem prognozowania jest ARIMA.
 
-I. Pobieranie danych z alphavantage:
-	- DONE: użytkonik podaje nazwę instytucji, której akcje chce przewidywać
-	- TODO (przydałoby się): wyświetlamy wyniki wyszukiwań i pytamy, którą chce wybrać (Ticker Search z alphavantage)
-II. Przetwarzanie pobranych danych: 
-	- DONE: uzupełnianie i przygotowanie danych - dane są w dobrej postaci ogółem
-	- TODO: wydzielenie zbioru testowego (ostatni rok), zbioru walidacyjnego (1-2 lata temu), treningowego (5 ostatnich lat bez ostatnich 2 lat)
-III. Uczenie modeli:
-	- DONE: prosty model w postaci średniej z ostatniego okresu (np. roku, 2 lat, itp)
-	- TODO: zrobienie ARIMA z odpowidnimi parametrami:
-		- wstępne wybranie rozsądnych parametrów: p (lag order), d (difference order), q (moving average order)
-IV. Wybieranie najlepszego modelu:
-	- TODO: policzyć MSE, RMSE dla kilku rozsądnych modeli (prosta średnia, ARIMA z różnymi parametrami) i wybranie najlepszego z nich na podstawie zbioru walidacyjnego
-	- TODO: podanie jak dobrze poszło naszemu modelowi na postawie zbioru testowego
-V. Wykorzystanie modelu:
-	- TODO: nauczenie najlepszego modelu z całych dostępnych danych
-	- TODO: wygenerowanie predykcji
-VI. Ogarnięcie kodu:
-	- TODO: dodanie komentarzy
-	- TODO: podzielenie kodu na moduły?
-VII. Przygotowanie dokumentacji:
-	- TODO: opisanie co robi kod
-	- TODO: opisanie wyników dla jakiegoś przykładu 
+Działanie programu:
+1) pytamy użytkownika o podanie nazwy firmy, której akcje chce przewidywać (funkcja ask_for_ticker)
+2) pobieramy z alphavantage sugestie co do tego, co to za firma i wyświetlamy je użytkownikowi (dalej ask_for_ticker)
+3) użytkownik podaje którą pozycję z listy wybiera (dalej ask ask_for_ticker)
+4) pobieramy dane z alphavantage tejże firmy (funkcja download_data)
+5) uczymy 3 modele na danych z ostatnich 300 dni, ale poza najnowszymi 14 dniami (funkcja make_model_predictions z argumentem train) i robimy prognozę na te 14 dni
+6) sprawdzamy jak te modele poradziły sobie z prognozą na ostatnie 14 dni, porównując ich przewidywania z rzeczywistymi wartościami (funkcja save_prediction_summary)
+7) uczymy 3 modele na danych z ostatnich 300 dni (funkcja make_model_predictions z argumentem data['close']) i robimy prognozę na przyszłe 14 dni 
+8) zapisujemy i wyświetlamy wyniki modeli (funkcja save forecast)
+9) rysujemy i zapisujemy dwa wykresy (funkcja make_plot), pierwszy przedstawia przewidywania na ostatnie 14 dni, a drugi na przyszłe 14 dni
+
+Pliki wynikowe programu:
+- lista sugestii alphavantage (search_list.csv)
+- dane pobrane z alphavantage ('ticker firmy'.csv)
+- RMSE i MAPE przewidywań 3 modeli dla ostatnich 14 dni (prediction_summary.csv) 
+- prognoza 3 modeli dla przyszłych 14 dni (forecast.csv)
+- wykresy przewidywań ostatnich i przyszłych 14 dni (prediction_forecast_plot.png)
+
+Używane modele:
+1) model krótkoterminowego trendu:
+	- liczymy średnią zwrotów z ostatnich 20 dni (zwrot[dziś] = wartość[dziś]/wartość[wczoraj] - 1)
+	- zakładamy, że kurs będzie rósł codziennie o średni zwrot, czyli prognoza[jutro] = wartość[dziś] * (1 + średni_zwrot); prognoza[t + n] = wartość[t] * (1 + średni_zwrot) ^ n
+2) model długoterminowego trendu:
+	- liczymy średnią zwrotów z ostatnich 100 dni
+	- zakładamy, że kurs będzie rósł codziennie o średni zwrot
+3) model ARIMA (Autoregressive Integrated Moving Average):
+	- zaawansowany model do prognozowania szeregów czasowych
+	- AR odnosi się do tego od jak wielu poprzednich wartość zależy wartość aktualna (przyjmujemy w modelu 2)
+	- I odnosi się do tego, że zamiast bezpośrednio prognozować wartość, prognozujemy różnice wartości, stopień odnosi się do tego jak odległych wartości różnicę rozważamy (przyjmujemy 1)
+	- MA odnosi się do tego, jak bardzo losowość aktualnej wartości zależy od losowości wartości poprzednich (przyjmujemy w modelu 1, czyli że aktualna losowość zależy tylko od poprzedniej)
 
 LINKI:
 1) Żródło danych: https://www.alphavantage.co/documentation/
 2) Podstawy uczenia maszynowego: https://www.kaggle.com/learn/intro-to-machine-learning
 3) Inspiracja: https://neptune.ai/blog/predicting-stock-prices-using-machine-learning
-4) ARIMA model: https://www.investopedia.com/terms/a/autoregressive-integrated-moving-average-arima.asp#:~:text=An%20autoregressive%20integrated%20moving%20average%2C%20or%20ARIMA%2C%20is,it%20predicts%20future%20values%20based%20on%20past%20values
+4) ARIMA model: https://www.investopedia.com/terms/a/autoregressive-integrated-moving-average-arima.asp
+5) dokumentacja bibliotek pandas, numpy, matplotlib, statsmodels
